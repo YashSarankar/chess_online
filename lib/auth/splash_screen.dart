@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../auth/login_screen.dart';
+import 'login_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../screens/home_screen.dart';
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -37,14 +40,27 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    // Navigate to home screen after animation
+    // Replace the existing navigation logic with this:
     Future.delayed(const Duration(milliseconds: 2500), () {
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
+        _handleNavigation();
       }
     });
+  }
+
+  Future<void> _handleNavigation() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      // User is already logged in, navigate to home screen
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } else {
+      // No user is logged in, navigate to login screen
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    }
   }
 
   @override

@@ -8,7 +8,6 @@ import 'chess_game_page.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../models/chess_bot.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -264,7 +263,82 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Colors.deepPurple[400]!,
                                     Colors.deepPurple[700]!,
                                   ],
-                                  onTap: () => _showBotDifficultyDialog(context),
+                                  onTap: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return Dialog(
+                                          backgroundColor: Colors.transparent,
+                                          child: Container(
+                                            padding: EdgeInsets.all(24.r),
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                                colors: [
+                                                  Colors.indigo[900]!,
+                                                  Colors.indigo[800]!,
+                                                ],
+                                              ),
+                                              borderRadius: BorderRadius.circular(20.r),
+                                              border: Border.all(
+                                                color: Colors.white.withOpacity(0.2),
+                                              ),
+                                            ),
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  'Choose Your Color',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 24.sp,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                SizedBox(height: 24.h),
+                                                Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                  children: [
+                                                    _buildColorChoice(
+                                                      context,
+                                                      isWhite: true,
+                                                      onSelected: () => Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) => ChessGamePage(
+                                                            timeControl: 10,
+                                                            boardStyle: ChessBoardStyle.brown,
+                                                            isBotMode: true,
+                                                            playerIsWhite: true,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    _buildColorChoice(
+                                                      context,
+                                                      isWhite: false,
+                                                      onSelected: () => Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) => ChessGamePage(
+                                                            timeControl: 10,
+                                                            boardStyle: ChessBoardStyle.brown,
+                                                            isBotMode: true,
+                                                            playerIsWhite: false,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
                                 ),
                               ),
                               SizedBox(width: 8.w),
@@ -419,42 +493,38 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24),
                 ...styles.map((style) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => Navigator.pop(context, style['style'] as ChessBoardStyle),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.1),
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context, style['style'] as ChessBoardStyle),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.1),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              gradient: LinearGradient(
+                                colors: style['colors'] as List<Color>,
+                              ),
+                            ),
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                gradient: LinearGradient(
-                                  colors: style['colors'] as List<Color>,
-                                ),
-                              ),
+                          const SizedBox(width: 16),
+                          Text(
+                            style['name'] as String,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 16,
                             ),
-                            const SizedBox(width: 16),
-                            Text(
-                              style['name'] as String,
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -490,77 +560,73 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     return Hero(
       tag: 'time_control_$minutes',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _showBoardStyleDialog(context, minutes),
-          borderRadius: BorderRadius.circular(16.r),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: gradient,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+      child: GestureDetector(
+        onTap: () => _showBoardStyleDialog(context, minutes),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: gradient,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.2),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: gradient[1].withOpacity(0.5),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
-              borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-                width: 1,
+              BoxShadow(
+                color: gradient[0].withOpacity(0.3),
+                blurRadius: 10,
+                spreadRadius: -5,
+                offset: const Offset(0, -5),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: gradient[1].withOpacity(0.5),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
+            ],
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(12.r),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 20.sp,
                 ),
-                BoxShadow(
-                  color: gradient[0].withOpacity(0.3),
-                  blurRadius: 10,
-                  spreadRadius: -5,
-                  offset: const Offset(0, -5),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$minutes ${minutes == 1 ? 'Minute' : 'Minutes'}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white.withOpacity(0.9),
+                  size: 16.sp,
                 ),
               ],
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(12.r),
-              child: Row(
-                children: [
-                  Icon(
-                    icon,
-                    color: Colors.white,
-                    size: 20.sp,
-                  ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '$minutes ${minutes == 1 ? 'Minute' : 'Minutes'}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            fontSize: 12.sp,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    color: Colors.white.withOpacity(0.9),
-                    size: 16.sp,
-                  ),
-                ],
-              ),
             ),
           ),
         ),
@@ -578,56 +644,52 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     return Hero(
       tag: 'quick_play_$title',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16.r),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: gradient,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: gradient,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(
+                color: gradient[1].withOpacity(0.5),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
               ),
-              borderRadius: BorderRadius.circular(16.r),
-              boxShadow: [
-                BoxShadow(
-                  color: gradient[1].withOpacity(0.5),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
+            ],
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(12.r),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  icon,
+                  color: Colors.white.withOpacity(0.5),
+                  size: 24.sp,
+                ),
+                SizedBox(height: 8.h),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.5),
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  title == 'Play Bot' ? 'Coming Soon' : subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.5),
+                    fontSize: 12.sp,
+                  ),
                 ),
               ],
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(12.r),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    icon,
-                    color: Colors.white,
-                    size: 24.sp,
-                  ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 12.sp,
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ),
@@ -635,126 +697,41 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _showBotDifficultyDialog(BuildContext context) async {
-    final difficulties = [
-      {
-        'level': BotDifficulty.easy,
-        'name': 'Easy',
-        'description': 'For beginners',
-        'color': Colors.green,
+  Widget _buildColorChoice(BuildContext context, {required bool isWhite, required VoidCallback onSelected}) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pop(context);
+        onSelected();
       },
-      {
-        'level': BotDifficulty.medium,
-        'name': 'Medium',
-        'description': 'Casual players',
-        'color': Colors.blue,
-      },
-      {
-        'level': BotDifficulty.hard,
-        'name': 'Hard',
-        'description': 'Experienced players',
-        'color': Colors.orange,
-      },
-      {
-        'level': BotDifficulty.expert,
-        'name': 'Expert',
-        'description': 'Advanced players',
-        'color': Colors.red,
-      },
-    ];
-
-    final result = await showDialog<BotDifficulty>(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: EdgeInsets.all(24.r),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.indigo[900]!.withOpacity(0.95),
-                  Colors.purple[900]!.withOpacity(0.95),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Select Difficulty',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 24.h),
-                ...difficulties.map((diff) => Padding(
-                  padding: EdgeInsets.only(bottom: 12.h),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => Navigator.pop(context, diff['level'] as BotDifficulty),
-                      borderRadius: BorderRadius.circular(12.r),
-                      child: Container(
-                        padding: EdgeInsets.all(16.r),
-                        decoration: BoxDecoration(
-                          color: (diff['color'] as MaterialColor).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                            color: (diff['color'] as MaterialColor).withOpacity(0.3),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.smart_toy,
-                              color: diff['color'] as MaterialColor,
-                            ),
-                            SizedBox(width: 16.w),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    diff['name'] as String,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18.sp,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    diff['description'] as String,
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.7),
-                                      fontSize: 14.sp,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                )).toList(),
-              ],
-            ),
+      child: Container(
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          color: isWhite ? Colors.white : Colors.black,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.2),
           ),
-        );
-      },
+        ),
+        child: Column(
+          children: [
+            Icon(
+              Icons.person,
+              size: 48.sp,
+              color: isWhite ? Colors.black : Colors.white,
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              isWhite ? 'White' : 'Black',
+              style: TextStyle(
+                color: isWhite ? Colors.black : Colors.white,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
-
-    if (result != null) {
-      await _showBoardStyleDialog(context, 10); // Default to 10 minutes for bot games
-    }
   }
 }
 

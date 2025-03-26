@@ -39,7 +39,9 @@ dependencies:
   cloud_firestore: ^4.15.9
   google_sign_in: ^6.2.1
   simple_animations: ^5.0.2
-  stockfish: ^1.3.0
+  # Remove both stockfish plugins
+  # flutter_stockfish_plugin: ^1.1.0
+  # stockfish: ^1.7.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

@@ -28,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   @override
   void initState() {
     super.initState();
+    _checkExistingSession();
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -137,6 +138,15 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  Future<void> _checkExistingSession() async {
+    final user = await _authService.restoreSession();
+    if (user != null && mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
     }
   }
 

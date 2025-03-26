@@ -42,7 +42,9 @@ class AuthService {
     required String password,
   }) async {
     try {
-      // Attempt to sign in
+      // Set persistence to LOCAL before signing in
+      await _auth.setPersistence(Persistence.LOCAL);
+      
       final userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -72,6 +74,8 @@ class AuthService {
   // Sign in with Google
   Future<UserCredential?> signInWithGoogle() async {
     try {
+      await _auth.setPersistence(Persistence.LOCAL);
+      
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) return null;
 
@@ -115,6 +119,32 @@ class AuthService {
       await _auth.sendPasswordResetEmail(email: email);
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
+    }
+  }
+
+  // Add this getter to check current user
+  User? get currentUser => _auth.currentUser;
+
+  // Add stream to listen to auth state changes
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
+
+  // Add method to check if user is logged in
+  bool isLoggedIn() {
+    return _auth.currentUser != null;
+  }
+
+  // Add method to restore existing session
+  Future<User?> restoreSession() async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        // Optionally verify token or refresh user data
+        await user.reload();
+        return _auth.currentUser;
+      }
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 

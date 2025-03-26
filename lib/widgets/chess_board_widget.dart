@@ -57,7 +57,7 @@ class ChessBoardWidget extends StatelessWidget {
           },
           child: ChessBoard(
             controller: controller,
-            boardOrientation: PlayerColor.white,
+            boardOrientation: game.playerIsWhite ? PlayerColor.white : PlayerColor.black,
             enableUserMoves: true,
             onMove: () => _handleMove(context),
             size: boardSize,
@@ -66,7 +66,9 @@ class ChessBoardWidget extends StatelessWidget {
         ),
         ...List.generate(8, (rank) {
           return List.generate(8, (file) {
-            final square = String.fromCharCode('a'.codeUnitAt(0) + file) + (8 - rank).toString();
+            final square = game.playerIsWhite 
+                ? String.fromCharCode('a'.codeUnitAt(0) + file) + (8 - rank).toString()
+                : String.fromCharCode('a'.codeUnitAt(0) + file) + (rank + 1).toString();
             return Positioned(
               left: file * (boardSize / 8),
               top: rank * (boardSize / 8),
@@ -98,25 +100,62 @@ class ChessBoardWidget extends StatelessWidget {
         game.makeMove(moves.last!);
         onGameStateChanged();
         
-        final gameStatus = game.getGameStatus();
-        if (gameStatus == GameStatus.checkmate) {
-          final winner = game.winner == PlayerColor.white ? "White" : "Black";
-          _showGameOverDialog(context, '$winner wins by checkmate!');
-        } else if (gameStatus == GameStatus.draw) {
-          _showGameOverDialog(context, 'Game is a draw!');
-        }
-
-        final capturedPiece = game.getCapturedPiece();
-        if (capturedPiece != null) {
-          onPieceCapture?.call(capturedPiece);
-        }
-
-        if (onMove != null) {
-          await onMove!(moves.last!, moves.last!);
-        }
+        await _checkGameStatusAndMakeNextMove(context);
       }
     } catch (e) {
       print('Invalid move: $e');
+    }
+  }
+
+  Future<void> _checkGameStatusAndMakeNextMove(BuildContext context) async {
+    // Check game status
+    final gameStatus = game.getGameStatus();
+    if (gameStatus == GameStatus.checkmate) {
+      final winner = game.winner == PlayerColor.white ? "White" : "Black";
+      _showGameOverDialog(context, '$winner wins by checkmate!');
+      return;
+    } else if (gameStatus == GameStatus.draw) {
+      _showGameOverDialog(context, 'Game is a draw!');
+      return;
+    }
+
+    // Handle captured pieces
+    final capturedPiece = game.getCapturedPiece();
+    if (capturedPiece != null) {
+      onPieceCapture?.call(capturedPiece);
+    }
+
+    // Make bot move if it's bot's turn
+    if (game.isBotMode && 
+        ((game.currentTurn == PlayerColor.black && game.playerIsWhite) ||
+         (game.currentTurn == PlayerColor.white && !game.playerIsWhite))) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      final botMove = game.getBotMove();
+      if (botMove != null) {
+        final moveMap = Map<String, String>.from(
+          Map<String, dynamic>.from(
+            botMove.substring(1, botMove.length - 1)
+                .split(', ')
+                .map((e) => e.split(': '))
+                .map((e) => MapEntry(e[0], e[1].replaceAll("'", "")))
+                .toList()
+                .asMap()
+                .map((_, e) => e),
+          ),
+        );
+
+        if (moveMap['promotion'] != null) {
+          game.makePromotionMove(moveMap['from']!, moveMap['to']!, moveMap['promotion']!);
+        } else {
+          game.makeMoveFromTo(moveMap['from']!, moveMap['to']!);
+        }
+        
+        controller.makeMove(
+          from: moveMap['from']!,
+          to: moveMap['to']!,
+        );
+        onGameStateChanged();
+      }
     }
   }
 
@@ -138,18 +177,7 @@ class ChessBoardWidget extends StatelessWidget {
       controller.makeMove(from: selectedSquare!, to: move);
       onGameStateChanged();
 
-      final gameStatus = game.getGameStatus();
-      if (gameStatus == GameStatus.checkmate) {
-        final winner = game.winner == PlayerColor.white ? "White" : "Black";
-        _showGameOverDialog(context, '$winner wins by checkmate!');
-      } else if (gameStatus == GameStatus.draw) {
-        _showGameOverDialog(context, 'Game is a draw!');
-      }
-
-      final capturedPiece = game.getCapturedPiece();
-      if (capturedPiece != null) {
-        onPieceCapture?.call(capturedPiece);
-      }
+      await _checkGameStatusAndMakeNextMove(context);
 
       if (onMove != null) {
         await onMove!(selectedSquare!, move);
@@ -255,40 +283,36 @@ class ChessBoardWidget extends StatelessWidget {
   }
 
   Widget _buildDialogButton(BuildContext context, String text, IconData icon, MaterialColor color, VoidCallback onPressed) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: color.withOpacity(0.5),
-              width: 1,
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: color.withOpacity(0.5),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: color,
+              size: 20,
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                color: color,
-                size: 20,
+            const SizedBox(width: 8),
+            Text(
+              text,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(width: 8),
-              Text(
-                text,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -13,11 +13,15 @@ import 'dart:math';
 class ChessGamePage extends StatefulWidget {
   final int timeControl;
   final ChessBoardStyle boardStyle;
+  final bool isBotMode;
+  final bool playerIsWhite;
   
   const ChessGamePage({
     super.key,
     required this.timeControl,
     required this.boardStyle,
+    this.isBotMode = false,
+    this.playerIsWhite = true,
   });
 
   @override
@@ -41,32 +45,38 @@ class _ChessGamePageState extends State<ChessGamePage> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
-    whiteTimeLeft = widget.timeControl * 60; // Convert minutes to seconds
+    whiteTimeLeft = widget.timeControl * 60;
     blackTimeLeft = widget.timeControl * 60;
     startTimer();
+    
+    // Remove fade animation
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
     )..forward();
 
-    // Add pulse animation for current turn indicator
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     )..repeat(reverse: true);
 
-    // Add glow animation for the board
     _glowController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
     )..repeat(reverse: true);
 
-    // Set system UI overlay style for more immersive experience
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       systemNavigationBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
     ));
+
+    _game.setBotMode(widget.isBotMode);
+    _game.setPlayerColor(widget.playerIsWhite);
+    
+    if (widget.isBotMode && !widget.playerIsWhite) {
+      _makeBotMove();
+    }
   }
 
   @override
@@ -209,40 +219,36 @@ class _ChessGamePageState extends State<ChessGamePage> with TickerProviderStateM
   }
 
   Widget _buildDialogButton(String text, IconData icon, MaterialColor color, VoidCallback onPressed) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: color.withOpacity(0.5),
-              width: 1,
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: color.withOpacity(0.5),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: color,
+              size: 20,
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                color: color,
-                size: 20,
+            const SizedBox(width: 8),
+            Text(
+              text,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(width: 8),
-              Text(
-                text,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -283,7 +289,7 @@ class _ChessGamePageState extends State<ChessGamePage> with TickerProviderStateM
           ),
           content: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: pieces.map((p) => InkWell(
+            children: pieces.map((p) => GestureDetector(
               onTap: () => Navigator.of(context).pop(p['piece']),
               child: Container(
                 padding: const EdgeInsets.all(12),
@@ -330,6 +336,53 @@ class _ChessGamePageState extends State<ChessGamePage> with TickerProviderStateM
     blackCapturedPieces = capturedPieces.where((piece) => piece[0] == 'w').toList();
   }
 
+  Future<void> _makeBotMove() async {
+    // Add a small delay to make the bot move feel more natural
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Only make bot move if it's the bot's turn
+    if ((widget.playerIsWhite && !isWhiteTurn) || (!widget.playerIsWhite && isWhiteTurn)) {
+      final botMove = _game.getBotMove();
+      if (botMove != null) {
+        final moveMap = Map<String, String>.from(
+          Map<String, dynamic>.from(
+            botMove.substring(1, botMove.length - 1)
+                .split(', ')
+                .map((e) => e.split(': '))
+                .map((e) => MapEntry(e[0], e[1].replaceAll("'", "")))
+                .toList()
+                .asMap()
+                .map((_, e) => e),
+          ),
+        );
+        
+        if (mounted) {
+          setState(() {
+            if (moveMap['promotion'] != null) {
+              _game.makePromotionMove(moveMap['from']!, moveMap['to']!, moveMap['promotion']!);
+            } else {
+              _game.makeMoveFromTo(moveMap['from']!, moveMap['to']!);
+            }
+            _controller.makeMove(
+              from: moveMap['from']!,
+              to: moveMap['to']!,
+            );
+            isWhiteTurn = !isWhiteTurn;
+          });
+        }
+      }
+    }
+  }
+
+  void _onGameStateChanged() {
+    if (mounted) {
+      setState(() {
+        isWhiteTurn = _game.currentTurn == PlayerColor.white;
+        selectedSquare = null;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -339,106 +392,54 @@ class _ChessGamePageState extends State<ChessGamePage> with TickerProviderStateM
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const material.Color(0xFF1a237e), // Deep indigo
-              const material.Color(0xFF0d47a1), // Deep blue
-              const material.Color(0xFF1a237e), // Deep indigo
+              const material.Color(0xFF1a237e),
+              const material.Color(0xFF0d47a1),
+              const material.Color(0xFF1a237e),
             ],
           ),
         ),
-        child: Stack(
-          children: [
-            // Animated background particles
-            Positioned.fill(
-              child: CustomPaint(
-                painter: StarFieldPainter(
-                  animation: _glowController,
-                ),
-              ),
-            ),
-            
-            SafeArea(
-              child: FadeTransition(
-                opacity: _fadeController,
+        child: SafeArea(
+          child: Column(
+            children: [
+              buildCustomAppBar(),
+              Expanded(
                 child: Column(
                   children: [
-                    buildCustomAppBar(),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          buildPlayerInfo(
-                            isWhite: false,
-                            timeLeft: blackTimeLeft,
-                            isCurrentTurn: !isWhiteTurn,
-                          ),
-                          
-                          // Enhanced chess board container
-                          Expanded(
-                            child: Container(
-                              margin: EdgeInsets.symmetric(vertical: 0.h, horizontal: 0.w),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.07),
-                                borderRadius: BorderRadius.circular(16.r),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.15),
-                                  width: 1.5,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.blue.withOpacity(0.2),
-                                    blurRadius: 30,
-                                    spreadRadius: 5,
-                                  ),
-                                  BoxShadow(
-                                    color: Colors.purple.withOpacity(0.1),
-                                    blurRadius: 20,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(16.r),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                                  child: Stack(
-                                    children: [
-                                      // Animated glow effect
-                                      AnimatedBuilder(
-                                        animation: _glowController,
-                                        builder: (context, child) {
-                                          return Container(
-                                            decoration: BoxDecoration(
-                                              gradient: RadialGradient(
-                                                center: Alignment.center,
-                                                colors: [
-                                                  Colors.blue.withOpacity(0.2 * _glowController.value),
-                                                  Colors.transparent,
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                      Center(child: buildChessBoard()),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          
-                          buildPlayerInfo(
-                            isWhite: true,
-                            timeLeft: whiteTimeLeft,
-                            isCurrentTurn: isWhiteTurn,
-                          ),
-                        ],
+                    // Conditionally order player info based on orientation
+                    if (_game.playerIsWhite) ...[
+                      buildPlayerInfo(
+                        isWhite: false,
+                        timeLeft: blackTimeLeft,
+                        isCurrentTurn: !isWhiteTurn,
                       ),
-                    ),
+                      Expanded(
+                        child: buildChessBoard(),
+                      ),
+                      buildPlayerInfo(
+                        isWhite: true,
+                        timeLeft: whiteTimeLeft,
+                        isCurrentTurn: isWhiteTurn,
+                      ),
+                    ] else ...[
+                      buildPlayerInfo(
+                        isWhite: true,
+                        timeLeft: whiteTimeLeft,
+                        isCurrentTurn: isWhiteTurn,
+                      ),
+                      Expanded(
+                        child: buildChessBoard(),
+                      ),
+                      buildPlayerInfo(
+                        isWhite: false,
+                        timeLeft: blackTimeLeft,
+                        isCurrentTurn: !isWhiteTurn,
+                      ),
+                    ],
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -458,17 +459,12 @@ class _ChessGamePageState extends State<ChessGamePage> with TickerProviderStateM
           selectedSquare: selectedSquare,
           onSquareSelected: (square) {
             setState(() {
-              selectedSquare = selectedSquare == square ? null : square;
+              selectedSquare = square;
             });
           },
-          onGameStateChanged: () {
-            setState(() {
-              selectedSquare = null;
-              isWhiteTurn = !isWhiteTurn;
-            });
-          },
+          onGameStateChanged: _onGameStateChanged,
           onPieceCapture: _handlePieceCapture,
-          onMove: (String from, String to) async {
+          onMove: (from, to) async {
             if (_game.isPawnPromotion(from, to)) {
               await showPromotionDialog(from, to);
             }
@@ -665,20 +661,16 @@ class _ChessGamePageState extends State<ChessGamePage> with TickerProviderStateM
     required IconData icon,
     VoidCallback? onPressed,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8.r),
-        onTap: onPressed,
-        child: Container(
-          padding: EdgeInsets.all(8.r),
-          child: Icon(
-            icon,
-            color: onPressed != null 
-                ? Colors.white.withOpacity(0.9)
-                : Colors.white.withOpacity(0.3),
-            size: 20.sp,
-          ),
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: EdgeInsets.all(8.r),
+        child: Icon(
+          icon,
+          color: onPressed != null 
+              ? Colors.white.withOpacity(0.9)
+              : Colors.white.withOpacity(0.3),
+          size: 20.sp,
         ),
       ),
     );
@@ -689,99 +681,102 @@ class _ChessGamePageState extends State<ChessGamePage> with TickerProviderStateM
     required int timeLeft,
     required bool isCurrentTurn,
   }) {
-    return AnimatedBuilder(
-      animation: _pulseController,
-      builder: (context, child) {
-        final glowOpacity = isCurrentTurn ? 
-            0.3 + (0.2 * _pulseController.value) : 
-            0.0;
-            
-        return Padding(
-          padding: EdgeInsets.all(8.r),
-          child: Column(
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                margin: EdgeInsets.symmetric(vertical: 10.h),
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                decoration: BoxDecoration(
-                  color: isCurrentTurn 
-                      ? Colors.blue.withOpacity(0.15)
-                      : Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(
+    return Transform.rotate(
+      angle: isWhite == _game.playerIsWhite ? 0 : pi,
+      child: AnimatedBuilder(
+        animation: _pulseController,
+        builder: (context, child) {
+          final glowOpacity = isCurrentTurn ? 
+              0.3 + (0.2 * _pulseController.value) : 
+              0.0;
+              
+          return Padding(
+            padding: EdgeInsets.all(8.r),
+            child: Column(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: EdgeInsets.symmetric(vertical: 10.h),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  decoration: BoxDecoration(
                     color: isCurrentTurn 
-                        ? Colors.blue.withOpacity(0.5) 
-                        : Colors.white.withOpacity(0.1),
-                    width: 1,
-                  ),
-                  boxShadow: isCurrentTurn ? [
-                    BoxShadow(
-                      color: Colors.blue.withOpacity(glowOpacity),
-                      blurRadius: 8,
-                      spreadRadius: 0,
+                        ? Colors.blue.withOpacity(0.15)
+                        : Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(16.r),
+                    border: Border.all(
+                      color: isCurrentTurn 
+                          ? Colors.blue.withOpacity(0.5) 
+                          : Colors.white.withOpacity(0.1),
+                      width: 1,
                     ),
-                  ] : [],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(2.r),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.2),
-                            ),
-                          ),
-                          child: CircleAvatar(
-                            radius: 16.r,
-                            backgroundColor: isWhite ? Colors.white : Colors.black,
-                            child: Icon(
-                              Icons.person,
-                              size: 20.sp,
-                              color: isWhite ? Colors.black : Colors.white,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              isWhite ? 'White' : 'Black',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
-                                fontSize: 16.sp,
-                                fontWeight: isCurrentTurn ? FontWeight.bold : FontWeight.normal,
+                    boxShadow: isCurrentTurn ? [
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(glowOpacity),
+                        blurRadius: 8,
+                        spreadRadius: 0,
+                      ),
+                    ] : [],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(2.r),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.2),
                               ),
                             ),
-                            if (isCurrentTurn)
+                            child: CircleAvatar(
+                              radius: 16.r,
+                              backgroundColor: isWhite ? Colors.white : Colors.black,
+                              child: Icon(
+                                Icons.person,
+                                size: 20.sp,
+                                color: isWhite ? Colors.black : Colors.white,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 12.w),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               Text(
-                                'Your turn',
+                                isWhite ? 'White' : 'Black',
                                 style: TextStyle(
-                                  color: Colors.blue.withOpacity(0.9),
-                                  fontSize: 12.sp,
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 16.sp,
+                                  fontWeight: isCurrentTurn ? FontWeight.bold : FontWeight.normal,
                                 ),
                               ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
-                      child: buildTimer(timeLeft, isCurrentTurn),
-                    ),
-                  ],
+                              if (isCurrentTurn)
+                                Text(
+                                  'Your turn',
+                                  style: TextStyle(
+                                    color: Colors.blue.withOpacity(0.9),
+                                    fontSize: 12.sp,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
+                        child: buildTimer(timeLeft, isCurrentTurn),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              buildCapturedPieces(isWhite),
-            ],
-          ),
-        );
-      },
+                buildCapturedPieces(isWhite),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 

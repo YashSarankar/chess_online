@@ -55,6 +55,18 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
 
     _fadeController.forward();
     _slideController.forward();
+
+    // Add check for existing session
+    _checkExistingSession();
+  }
+
+  Future<void> _checkExistingSession() async {
+    final user = await _authService.restoreSession();
+    if (user != null && mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    }
   }
 
   @override
