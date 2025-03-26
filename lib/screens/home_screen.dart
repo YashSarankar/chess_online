@@ -670,22 +670,22 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Icon(
                   icon,
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withOpacity(1),
                   size: 24.sp,
                 ),
                 SizedBox(height: 8.h),
                 Text(
                   title,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withOpacity(1),
                     fontSize: 14.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
-                  title == 'Play Bot' ? 'Coming Soon' : subtitle,
+                  title == 'Play Bot' ? 'Try it out!' : subtitle,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withOpacity(1),
                     fontSize: 12.sp,
                   ),
                 ),
