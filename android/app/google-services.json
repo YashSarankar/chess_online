@@ -1,0 +1,90 @@
+{
+  "project_info": {
+    "project_number": "523829422600",
+    "project_id": "subtle-creek-419518",
+    "storage_bucket": "subtle-creek-419518.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:523829422600:android:ade9ce5975ebfa71ee7fbd",
+        "android_client_info": {
+          "package_name": "com.example.chess_online"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "523829422600-auhkv3j10cpcv4lfj8sli4g69bao16is.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.chess_online",
+            "certificate_hash": "31b24d1feea1db6f95b444baf599e81a2335bd43"
+          }
+        },
+        {
+          "client_id": "523829422600-pmtbj6e1gpgpn4r2q4sp5ce5rv8k5ku7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBN1seGpPoFXjI-4KHaRX57AMacQMvXuIY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "523829422600-pmtbj6e1gpgpn4r2q4sp5ce5rv8k5ku7.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "523829422600-4mo4hdpmr0cj4sjqgflhi11eg239dv67.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.games"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:523829422600:android:a1d5f95f86d4c7e9ee7fbd",
+        "android_client_info": {
+          "package_name": "com.example.temp_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "523829422600-pmtbj6e1gpgpn4r2q4sp5ce5rv8k5ku7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBN1seGpPoFXjI-4KHaRX57AMacQMvXuIY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "523829422600-pmtbj6e1gpgpn4r2q4sp5ce5rv8k5ku7.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "523829422600-4mo4hdpmr0cj4sjqgflhi11eg239dv67.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.games"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
