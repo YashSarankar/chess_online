@@ -19,15 +19,14 @@ class GameService {
         'board_state': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR',
         'turn': 'white',
         'last_move': null,
-        'winner': null,
-        'status': 'waiting', // waiting, active, completed
-        'created_at': FieldValue.serverTimestamp(),
+        'status': 'waiting',
         'time_control': timeControl,
-        'player1_time': timeControl * 60,
-        'player2_time': timeControl * 60,
-        'last_move_time': FieldValue.serverTimestamp(),
+        'created_at': FieldValue.serverTimestamp(),
+        'white_time': timeControl * 60,
+        'black_time': timeControl * 60,
+        'winner': null,
       });
-
+      
       return gameRef.id;
     } catch (e) {
       throw 'Failed to create game: $e';
@@ -37,11 +36,18 @@ class GameService {
   // Join an existing game
   Future<void> joinGame(String gameId) async {
     try {
-      final currentUserId = _auth.currentUser?.uid;
-      if (currentUserId == null) throw 'User not authenticated';
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) throw 'User not authenticated';
+
+      final gameDoc = await _firestore.collection('games').doc(gameId).get();
+      if (!gameDoc.exists) throw 'Game not found';
+
+      final data = gameDoc.data() as Map<String, dynamic>;
+      if (data['player2'] != null) throw 'Game is full';
+      if (data['player1'] == userId) throw 'Cannot join your own game';
 
       await _firestore.collection('games').doc(gameId).update({
-        'player2': currentUserId,
+        'player2': userId,
         'status': 'active',
       });
     } catch (e) {
@@ -53,15 +59,14 @@ class GameService {
   Future<void> makeMove({
     required String gameId,
     required String move,
-    required String newBoardState,
-    required String currentTurn,
+    required String boardState,
+    required String turn,
   }) async {
     try {
       await _firestore.collection('games').doc(gameId).update({
         'last_move': move,
-        'board_state': newBoardState,
-        'turn': currentTurn == 'white' ? 'black' : 'white',
-        'last_move_time': FieldValue.serverTimestamp(),
+        'board_state': boardState,
+        'turn': turn,
       });
     } catch (e) {
       throw 'Failed to make move: $e';
@@ -78,40 +83,42 @@ class GameService {
         .snapshots();
   }
 
-  // Listen to specific game
+  // Listen to game changes
   Stream<DocumentSnapshot> listenToGame(String gameId) {
     return _firestore.collection('games').doc(gameId).snapshots();
   }
 
-  // End game
-  Future<void> endGame({
+  // Update game status
+  Future<void> updateGameStatus({
     required String gameId,
-    required String winnerId,
+    required String status,
+    String? winner,
   }) async {
     try {
-      await _firestore.collection('games').doc(gameId).update({
-        'status': 'completed',
-        'winner': winnerId,
-      });
+      final updates = <String, dynamic>{
+        'status': status,
+      };
+      
+      if (winner != null) {
+        updates['winner'] = winner;
+      }
+      
+      await _firestore.collection('games').doc(gameId).update(updates);
     } catch (e) {
-      throw 'Failed to end game: $e';
+      throw 'Failed to update game status: $e';
     }
   }
 
-  // Update player time
-  Future<void> updatePlayerTime({
+  // Update time remaining
+  Future<void> updateTime({
     required String gameId,
-    required String playerId,
-    required int timeLeft,
+    required int whiteTime,
+    required int blackTime,
   }) async {
     try {
-      final gameDoc = await _firestore.collection('games').doc(gameId).get();
-      final data = gameDoc.data() as Map<String, dynamic>;
-      
-      final String timeField = data['player1'] == playerId ? 'player1_time' : 'player2_time';
-      
       await _firestore.collection('games').doc(gameId).update({
-        timeField: timeLeft,
+        'white_time': whiteTime,
+        'black_time': blackTime,
       });
     } catch (e) {
       throw 'Failed to update time: $e';

@@ -22,13 +22,14 @@ class MultiplayerGameScreen extends StatefulWidget {
 class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
   final GameService _gameService = GameService();
   final ChessBoardController _controller = ChessBoardController();
-  final ChessGame _game = ChessGame();
-  String? selectedSquare;
   bool isMyTurn = false;
+  late bool isWhite;
 
   @override
   void initState() {
     super.initState();
+    isWhite = widget.isCreator; // Creator plays white
+    isMyTurn = widget.isCreator; // White moves first
     _setupGame();
   }
 
@@ -38,46 +39,71 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       
       final data = snapshot.data() as Map<String, dynamic>;
       
-      // Update board state
+      // Update board state if it changed
       if (data['board_state'] != _controller.getFen()) {
         _controller.loadFen(data['board_state']);
       }
       
       // Update turn
       setState(() {
-        isMyTurn = (data['turn'] == 'white' && widget.isCreator) ||
-                   (data['turn'] == 'black' && !widget.isCreator);
+        isMyTurn = (data['turn'] == 'white' && isWhite) ||
+                   (data['turn'] == 'black' && !isWhite);
       });
-      
-      // Handle game end
-      if (data['status'] == 'completed') {
-        _handleGameEnd(data['winner']);
-      }
     });
   }
 
-  void _handleGameEnd(String winnerId) {
-    // Show game over dialog
+  void _onMove(String moveStr) async {
+    if (!isMyTurn) return;
+    try {
+      await _gameService.makeMove(
+        gameId: widget.gameId,
+        move: moveStr,
+        boardState: _controller.getFen(),
+        turn: isWhite ? 'black' : 'white', // Switch turns after move
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: _gameService.listenToGame(widget.gameId),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          return Column(
-            children: [
-              // Game info
-              // Chess board
-              // Controls
-            ],
-          );
-        },
+      appBar: AppBar(
+        title: Text(isWhite ? 'Playing as White' : 'Playing as Black'),
+        backgroundColor: Colors.indigo[900],
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              isMyTurn ? 'Your Turn' : "Opponent's Turn",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ChessBoard(
+              controller: _controller,
+              boardColor: BoardColor.orange,
+              boardOrientation: isWhite ? PlayerColor.white : PlayerColor.black,
+              onMove: () {
+                final moves = _controller.getSan();
+                if (moves.isNotEmpty) {
+                  _onMove(moves.last!);
+                }
+              },
+              enableUserMoves: isMyTurn,
+            ),
+          ],
+        ),
       ),
     );
   }
