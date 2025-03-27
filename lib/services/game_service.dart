@@ -12,10 +12,13 @@ class GameService {
   }) async {
     try {
       final gameRef = _firestore.collection('games').doc();
+      final creator = _auth.currentUser;
       
       await gameRef.set({
         'player1': creatorId,
+        'player1_name': creator?.displayName ?? 'Anonymous',
         'player2': null,
+        'player2_name': null,
         'board_state': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR',
         'turn': 'white',
         'last_move': null,
@@ -36,22 +39,70 @@ class GameService {
   // Join an existing game
   Future<void> joinGame(String gameId) async {
     try {
-      final userId = _auth.currentUser?.uid;
-      if (userId == null) throw 'User not authenticated';
+      final user = _auth.currentUser;
+      if (user == null) throw 'User not authenticated';
 
-      final gameDoc = await _firestore.collection('games').doc(gameId).get();
-      if (!gameDoc.exists) throw 'Game not found';
+      // First validate the gameId format and clean it
+      if (gameId.isEmpty) throw 'Invalid game ID';
+      final cleanGameId = gameId.trim();
+      
+      print('Attempting to join game with ID: $cleanGameId'); // Debug log
+
+      // Create a reference to the game document
+      final gameRef = _firestore.collection('games').doc(cleanGameId);
+
+      // Get real-time game data
+      final gameDoc = await gameRef.get();
+      
+      print('Game exists: ${gameDoc.exists}'); // Debug log
+
+      if (!gameDoc.exists) {
+        throw 'Game not found. Please check the game ID: $cleanGameId';
+      }
 
       final data = gameDoc.data() as Map<String, dynamic>;
-      if (data['player2'] != null) throw 'Game is full';
-      if (data['player1'] == userId) throw 'Cannot join your own game';
+      
+      print('Game status: ${data['status']}'); // Debug log
+      print('Current player2: ${data['player2']}'); // Debug log
+      
+      // Additional validations
+      if (data['status'] != 'waiting') {
+        throw 'This game is no longer available';
+      }
+      if (data['player2'] != null) {
+        throw 'Game is already full';
+      }
+      if (data['player1'] == user.uid) {
+        throw 'Cannot join your own game';
+      }
 
-      await _firestore.collection('games').doc(gameId).update({
-        'player2': userId,
-        'status': 'active',
+      // Join the game with a transaction to ensure atomicity
+      await _firestore.runTransaction((transaction) async {
+        final freshGameDoc = await transaction.get(gameRef);
+        
+        if (!freshGameDoc.exists) {
+          throw 'Game no longer exists';
+        }
+        
+        final freshData = freshGameDoc.data() as Map<String, dynamic>;
+        if (freshData['player2'] != null) throw 'Game is already full';
+        if (freshData['status'] != 'waiting') throw 'Game is no longer available';
+
+        transaction.update(gameRef, {
+          'player2': user.uid,
+          'player2_name': user.displayName ?? 'Anonymous',
+          'status': 'active',
+          'updated_at': FieldValue.serverTimestamp(),
+        });
       });
+
+      print('Successfully joined game: $cleanGameId'); // Debug log
     } catch (e) {
-      throw 'Failed to join game: $e';
+      print('Error joining game: $e'); // Debug log
+      if (e is FirebaseException) {
+        throw 'Failed to join game: ${e.message}';
+      }
+      throw e.toString();
     }
   }
 
@@ -61,12 +112,18 @@ class GameService {
     required String move,
     required String boardState,
     required String turn,
+    required List<String> moves,
+    required int whiteTime,
+    required int blackTime,
   }) async {
     try {
       await _firestore.collection('games').doc(gameId).update({
         'last_move': move,
         'board_state': boardState,
         'turn': turn,
+        'moves': moves,
+        'white_time': whiteTime,
+        'black_time': blackTime,
       });
     } catch (e) {
       throw 'Failed to make move: $e';
@@ -142,6 +199,21 @@ class GameService {
       });
     } catch (e) {
       throw 'Failed to resign game: $e';
+    }
+  }
+
+  Future<void> endGame({
+    required String gameId,
+    String? winner,
+  }) async {
+    try {
+      await _firestore.collection('games').doc(gameId).update({
+        'status': 'completed',
+        'game_over': true,
+        'winner': winner,
+      });
+    } catch (e) {
+      throw 'Failed to end game: $e';
     }
   }
 } 

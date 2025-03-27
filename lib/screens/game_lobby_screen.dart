@@ -19,11 +19,11 @@ class GameLobbyScreen extends StatelessWidget {
         title: const Text('Game Lobby'),
         backgroundColor: Colors.indigo[900],
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
+      body: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.all(16.h),
+            child: ElevatedButton(
               onPressed: () => _showCreateGameDialog(context),
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 16.h),
@@ -34,20 +34,73 @@ class GameLobbyScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 18.sp),
               ),
             ),
-            SizedBox(height: 20.h),
-            ElevatedButton(
-              onPressed: () => _showJoinGameDialog(context),
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 16.h),
-                backgroundColor: Colors.green[700],
-              ),
-              child: Text(
-                'Join Game',
-                style: TextStyle(fontSize: 18.sp),
-              ),
+          ),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('games')
+                  .where('status', isEqualTo: 'waiting')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final games = snapshot.data!.docs;
+                if (games.isEmpty) {
+                  return const Center(child: Text('No games available'));
+                }
+
+                return ListView.builder(
+                  itemCount: games.length,
+                  itemBuilder: (context, index) {
+                    final game = games[index].data() as Map<String, dynamic>;
+                    final gameId = games[index].id;
+                    final creatorName = game['player1_name'] ?? 'Anonymous';
+                    final timeControl = game['time_control'] ?? 10;
+
+                    return Card(
+                      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                      child: ListTile(
+                        title: Text('Game by $creatorName'),
+                        subtitle: Text('Time Control: $timeControl minutes'),
+                        trailing: ElevatedButton(
+                          onPressed: () async {
+                            try {
+                              await _gameService.joinGame(gameId);
+                              if (context.mounted) {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => MultiplayerGameScreen(
+                                      gameId: gameId,
+                                      isCreator: false,
+                                    ),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(e.toString())),
+                                );
+                              }
+                            }
+                          },
+                          child: const Text('Join'),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -142,64 +195,6 @@ class GameLobbyScreen extends StatelessWidget {
                 }
               },
               child: const Text('Create'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showJoinGameDialog(BuildContext context) {
-    final TextEditingController gameIdController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Join Game'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Enter the game code:'),
-              SizedBox(height: 16.h),
-              TextField(
-                controller: gameIdController,
-                decoration: const InputDecoration(
-                  hintText: 'Enter game code',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                try {
-                  await _gameService.joinGame(gameIdController.text);
-                  if (context.mounted) {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MultiplayerGameScreen(
-                          gameId: gameIdController.text,
-                          isCreator: false,
-                        ),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(e.toString())),
-                    );
-                  }
-                }
-              },
-              child: const Text('Join'),
             ),
           ],
         );
