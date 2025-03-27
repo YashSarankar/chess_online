@@ -8,6 +8,7 @@ import 'chess_game_page.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:chess_online/screens/game_lobby_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -355,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   onTap: () => Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => const UnderProductionScreen(),
+                                      builder: (context) => GameLobbyScreen(),
                                     ),
                                   ),
                                 ),

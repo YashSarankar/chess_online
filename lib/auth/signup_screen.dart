@@ -97,7 +97,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     setState(() => _isLoading = true);
 
     try {
-      await _authService.signUpWithEmail(
+      await _authService.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
         username: _usernameController.text.trim(),

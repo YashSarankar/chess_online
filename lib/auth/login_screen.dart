@@ -71,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
     try {
       print('Attempting login with email: ${_emailController.text.trim()}');
-      await _authService.signInWithEmail(
+      await _authService.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
