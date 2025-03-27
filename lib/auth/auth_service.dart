@@ -70,7 +70,6 @@ class AuthService {
   // Sign in with Google
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      // Only set persistence on web platform
       if (kIsWeb) {
         await _auth.setPersistence(Persistence.LOCAL);
       }
