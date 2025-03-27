@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Color;
+import 'package:flutter/material.dart' as material show Color;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/game_service.dart';
 import '../models/chess_game.dart';
@@ -7,6 +8,9 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'dart:math';
 
 class MultiplayerGameScreen extends StatefulWidget {
   final String gameId;
@@ -22,7 +26,7 @@ class MultiplayerGameScreen extends StatefulWidget {
   State<MultiplayerGameScreen> createState() => _MultiplayerGameScreenState();
 }
 
-class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
+class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> with TickerProviderStateMixin {
   final GameService _gameService = GameService();
   final ChessBoardController _controller = ChessBoardController();
   bool isMyTurn = false;
@@ -37,15 +41,40 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
   String _opponentName = '';
   Timer? _timer;
   final _auth = FirebaseAuth.instance;
-  List<String> _whiteCapturedPieces = [];
-  List<String> _blackCapturedPieces = [];
+  List<String> whiteCapturedPieces = [];
+  List<String> blackCapturedPieces = [];
   
+  // Add new animation controllers
+  late AnimationController _pulseController;
+  late AnimationController _glowController;
+
+  // Add this property to the state class
+  Set<String> _possibleMoves = {};
+
   @override
   void initState() {
     super.initState();
     isWhite = widget.isCreator;
     isMyTurn = widget.isCreator;
     _setupGame();
+
+    // Initialize animation controllers
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _glowController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    // Set system UI style
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+    ));
   }
 
   void _startTimer() {
@@ -82,7 +111,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
       _isGameOver = true;
       _winner = _whiteTime <= 0 ? 'Black' : 'White';
     });
-    _showGameOverDialog();
+    _showGameOverDialog(_winner != null ? '$_winner wins!' : 'The game ended in a draw');
   }
 
   void _setupGame() {
@@ -126,7 +155,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         if (data['game_over'] == true) {
           _isGameOver = true;
           _winner = data['winner'];
-          _showGameOverDialog();
+          _showGameOverDialog(_winner != null ? '$_winner wins!' : 'The game ended in a draw');
         }
       });
     });
@@ -135,22 +164,140 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
     _startTimer();
   }
 
-  void _showGameOverDialog() {
-    if (!mounted) return;
+  void _showGameOverDialog(String message) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Game Over'),
-        content: Text(_winner != null 
-          ? '$_winner wins!' 
-          : 'The game ended in a draw'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Return to Lobby'),
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: 0.8.sw,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.indigo[900]!,
+                  Colors.indigo[800]!,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20.r),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            padding: EdgeInsets.all(24.r),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.emoji_events_rounded,
+                  size: 64.sp,
+                  color: Colors.amber[400],
+                ),
+                SizedBox(height: 16.h),
+                Text(
+                  'Game Over',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 28.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 12.h),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 18.sp,
+                  ),
+                ),
+                SizedBox(height: 24.h),
+                Wrap(
+                  spacing: 16.w,
+                  runSpacing: 16.h,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    _buildDialogButton(
+                      'Return to Home',
+                      Icons.home_rounded,
+                      Colors.red,
+                      () {
+                        Navigator.of(context)
+                          ..pop()
+                          ..pop();
+                      },
+                    ),
+                    _buildDialogButton(
+                      'New Game',
+                      Icons.refresh_rounded,
+                      Colors.green,
+                      () {
+                        setState(() {
+                          _controller.resetBoard();
+                          isMyTurn = widget.isCreator;
+                          _moveHistory.clear();
+                          whiteCapturedPieces.clear();
+                          blackCapturedPieces.clear();
+                          _whiteTime = 600;
+                          _blackTime = 600;
+                          _startTimer();
+                        });
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDialogButton(String text, IconData icon, MaterialColor color, VoidCallback onPressed) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: color.withOpacity(0.5),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: color,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              text,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -185,6 +332,9 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
               : null,
         );
       }
+
+      final boardStateAfter = _controller.game.fen;
+      _updateCapturedPieces(move, boardStateBefore, boardStateAfter);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -192,133 +342,311 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
         );
       }
     }
-    final boardStateAfter = _controller.game.fen;
-    _updateCapturedPieces(move, boardStateBefore, boardStateAfter);
-    setState(() {});
   }
 
   void _updateCapturedPieces(String move, String boardStateBefore, String boardStateAfter) {
-    final beforePieces = boardStateBefore.replaceAll(RegExp(r'[^rnbqkpRNBQKP]'), '').split('');
-    final afterPieces = boardStateAfter.replaceAll(RegExp(r'[^rnbqkpRNBQKP]'), '').split('');
-    
-    for (var piece in beforePieces) {
-      if (!afterPieces.contains(piece)) {
-        if (piece.toUpperCase() == piece) {
-          _blackCapturedPieces.add(piece);
+    // Get just the piece positions from FEN
+    final beforePieces = boardStateBefore.split(' ')[0];
+    final afterPieces = boardStateAfter.split(' ')[0];
+
+    // If a piece was captured, the after position will have one less piece
+    if (beforePieces.replaceAll(RegExp(r'[^rnbqkpRNBQKP]'), '').length >
+        afterPieces.replaceAll(RegExp(r'[^rnbqkpRNBQKP]'), '').length) {
+      
+      // Find which piece was captured by comparing the positions
+      final capturedPiece = move.contains('x') 
+          ? move[move.indexOf('x') - 1].toLowerCase() 
+          : 'p'; // If no piece specified, it's a pawn
+
+      setState(() {
+        if (isMyTurn) {
+          // I captured opponent's piece
+          whiteCapturedPieces.add(capturedPiece);
         } else {
-          _whiteCapturedPieces.add(piece);
+          // Opponent captured my piece
+          blackCapturedPieces.add(capturedPiece);
         }
-      }
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(isWhite ? 'Playing as White' : 'Playing as Black'),
-        backgroundColor: Colors.indigo[900],
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.flag),
-            onPressed: () => _showResignDialog(),
-          ),
-        ],
-      ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.indigo[900]!, Colors.indigo[700]!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const material.Color(0xFF1a237e),
+              const material.Color(0xFF0d47a1),
+              const material.Color(0xFF1a237e),
+            ],
           ),
         ),
-        child: Column(
-          children: [
-            _buildPlayerInfo(false), // Opponent
-            const Spacer(),
-            _buildChessBoard(),
-            const Spacer(),
-            _buildPlayerInfo(true), // Current player
-            if (_moveHistory.isNotEmpty) _buildMoveHistory(),
-            Container(
-              padding: EdgeInsets.all(8.h),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: _whiteCapturedPieces.map((piece) => _buildCapturedPiece(piece)).toList(),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildCustomAppBar(),
+              Expanded(
+                child: Column(
+                  children: [
+                    _buildPlayerInfo(false), // Opponent at top
+                    Expanded(child: _buildChessBoard()),
+                    _buildPlayerInfo(true), // Current player at bottom
+                  ],
+                ),
               ),
-            ),
-            Container(
-              padding: EdgeInsets.all(8.h),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: _blackCapturedPieces.map((piece) => _buildCapturedPiece(piece)).toList(),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCustomAppBar() {
+    return Container(
+      padding: EdgeInsets.all(10.r),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.white.withOpacity(0.1),
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: Colors.white, size: 20.sp),
+            onPressed: () => _showResignDialog(),
+          ),
+          Column(
+            children: [
+              Text(
+                'Multiplayer Game',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                '10 Min Game',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 14.sp,
+                ),
+              ),
+            ],
+          ),
+          IconButton(
+            icon: Icon(Icons.flag, color: Colors.white, size: 20.sp),
+            onPressed: () => _showResignDialog(),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildPlayerInfo(bool isCurrentPlayer) {
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) {
+        final isPlayerTurn = (isCurrentPlayer && isMyTurn) || (!isCurrentPlayer && !isMyTurn);
+        final glowOpacity = isPlayerTurn ? 0.3 + (0.2 * _pulseController.value) : 0.0;
+        
+        // Determine if this player info is for white or black pieces
+        final isWhitePlayer = (isCurrentPlayer && isWhite) || (!isCurrentPlayer && !isWhite);
+        
+        return Padding(
+          padding: EdgeInsets.all(8.r),
+          child: Column(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: EdgeInsets.symmetric(vertical: 10.h),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                decoration: BoxDecoration(
+                  color: isPlayerTurn 
+                      ? Colors.blue.withOpacity(0.15)
+                      : Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(16.r),
+                  border: Border.all(
+                    color: isPlayerTurn 
+                        ? Colors.blue.withOpacity(0.5) 
+                        : Colors.white.withOpacity(0.1),
+                    width: 1,
+                  ),
+                  boxShadow: isPlayerTurn ? [
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(glowOpacity),
+                      blurRadius: 8,
+                      spreadRadius: 0,
+                    ),
+                  ] : [],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(2.r),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.2),
+                            ),
+                          ),
+                          child: CircleAvatar(
+                            radius: 16.r,
+                            backgroundColor: isWhitePlayer ? Colors.white : Colors.black,
+                            child: Icon(
+                              Icons.person,
+                              size: 20.sp,
+                              color: isWhitePlayer ? Colors.black : Colors.white,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 12.w),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isCurrentPlayer ? _playerName : _opponentName,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 16.sp,
+                                fontWeight: isPlayerTurn ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                            if (isPlayerTurn)
+                              Text(
+                                'Current turn',
+                                style: TextStyle(
+                                  color: Colors.blue.withOpacity(0.9),
+                                  fontSize: 12.sp,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    _buildTimer(
+                      isWhitePlayer ? _whiteTime : _blackTime,
+                      isPlayerTurn,
+                    ),
+                  ],
+                ),
+              ),
+              _buildCapturedPiecesRow(isWhitePlayer ? whiteCapturedPieces : blackCapturedPieces),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTimer(int timeLeft, bool isCurrentTurn) {
+    final isLowTime = timeLeft < 30;
+    
     return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: 8.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: isLowTime 
+            ? Colors.red.withOpacity(0.1) 
+            : Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: isLowTime 
+              ? Colors.red.withOpacity(0.5) 
+              : Colors.white.withOpacity(0.1),
+        ),
+      ),
+      child: Text(
+        _formatTime(timeLeft),
+        style: TextStyle(
+          color: isLowTime 
+              ? Colors.red 
+              : Colors.white.withOpacity(0.9),
+          fontSize: 24.sp,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Roboto Mono',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCapturedPiecesRow(List<String> pieces) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+        ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            isCurrentPlayer ? _playerName : _opponentName,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Text(
-            isCurrentPlayer 
-                ? _formatTime(isWhite ? _whiteTime : _blackTime)
-                : _formatTime(isWhite ? _blackTime : _whiteTime),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontFamily: 'monospace',
-            ),
-          ),
-        ],
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: pieces.isEmpty 
+            ? [
+                Text(
+                  '---',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.5),
+                    fontSize: 20.sp,
+                  ),
+                ),
+              ]
+            : pieces.map((piece) => _buildCapturedPiece(piece)).toList(),
       ),
     );
   }
 
   Widget _buildChessBoard() {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 10,
-            spreadRadius: 2,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final boardSize = constraints.maxWidth > constraints.maxHeight 
+            ? constraints.maxHeight 
+            : constraints.maxWidth;
+        
+        return Transform.rotate(
+          angle: isWhite ? 0 : pi,
+          child: Container(
+            margin: EdgeInsets.all(16.r),
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Transform.rotate(
+              angle: isWhite ? 0 : pi,
+              child: ChessBoard(
+                controller: _controller,
+                boardColor: BoardColor.orange,
+                boardOrientation: isWhite ? PlayerColor.white : PlayerColor.black,
+                onMove: () {
+                  final moves = _controller.getSan();
+                  if (moves.isNotEmpty) {
+                    _onMove(moves.last!);
+                  }
+                },
+                enableUserMoves: isMyTurn && !_isGameOver,
+                size: boardSize,
+              ),
+            ),
           ),
-        ],
-      ),
-      child: ChessBoard(
-        controller: _controller,
-        boardColor: BoardColor.orange,
-        boardOrientation: isWhite ? PlayerColor.white : PlayerColor.black,
-        onMove: () {
-          final moves = _controller.getSan();
-          if (moves.isNotEmpty) {
-            _onMove(moves.last!);
-          }
-        },
-        enableUserMoves: isMyTurn && !_isGameOver,
-      ),
+        );
+      },
     );
   }
 
@@ -384,26 +712,91 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
   void _showResignDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Resign Game'),
-        content: const Text('Are you sure you want to resign?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 0.8.sw,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.indigo[900]!,
+                Colors.indigo[800]!,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20.r),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.2),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 20,
+                spreadRadius: 2,
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () async {
-              await _gameService.endGame(
-                gameId: widget.gameId,
-                winner: isWhite ? 'Black' : 'White',
-              );
-              if (mounted) Navigator.of(context).pop();
-            },
-            child: const Text('Resign'),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+          padding: EdgeInsets.all(24.r),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.warning_rounded,
+                size: 64.sp,
+                color: Colors.amber[400],
+              ),
+              SizedBox(height: 16.h),
+              Text(
+                'Resign Game',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 12.h),
+              Text(
+                'Are you sure you want to resign? This will count as a loss.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 16.sp,
+                ),
+              ),
+              SizedBox(height: 24.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildDialogButton(
+                    'Stay',
+                    Icons.close_rounded,
+                    Colors.green,
+                    () => Navigator.of(context).pop(),
+                  ),
+                  SizedBox(width: 8.w),
+                  _buildDialogButton(
+                    'Resign',
+                    Icons.flag_rounded,
+                    Colors.red,
+                    () async {
+                      await _gameService.endGame(
+                        gameId: widget.gameId,
+                        winner: isWhite ? 'Black' : 'White',
+                      );
+                      if (mounted) {
+                        Navigator.of(context)
+                          ..pop()
+                          ..pop();
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -412,6 +805,8 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> {
   void dispose() {
     _timer?.cancel();
     _controller.dispose();
+    _pulseController.dispose();
+    _glowController.dispose();
     super.dispose();
   }
 } 

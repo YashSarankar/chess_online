@@ -4,6 +4,34 @@ import '../models/chess_game.dart';
 import 'legal_move_indicator.dart';
 import '../models/chess_game.dart' show GameStatus;
 
+class CustomChessBoard extends StatelessWidget {
+  final ChessBoardController controller;
+  final BoardColor boardColor;
+  final PlayerColor boardOrientation;
+  final VoidCallback onMove;
+  final bool enableUserMoves;
+
+  const CustomChessBoard({
+    super.key,
+    required this.controller,
+    required this.boardColor,
+    required this.boardOrientation,
+    required this.onMove,
+    required this.enableUserMoves,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ChessBoard(
+      controller: controller,
+      boardColor: boardColor,
+      boardOrientation: boardOrientation,
+      onMove: onMove,
+      enableUserMoves: enableUserMoves,
+    );
+  }
+}
+
 class ChessBoardWidget extends StatelessWidget {
   final ChessBoardController controller;
   final ChessGame game;
@@ -55,13 +83,12 @@ class ChessBoardWidget extends StatelessWidget {
             final String tappedSquare = _getSquareFromPosition(localPosition, boardSize / 8);
             onSquareSelected(tappedSquare);
           },
-          child: ChessBoard(
+          child: CustomChessBoard(
             controller: controller,
-            boardOrientation: game.playerIsWhite ? PlayerColor.white : PlayerColor.black,
-            enableUserMoves: true,
-            onMove: () => _handleMove(context),
-            size: boardSize,
             boardColor: boardColor,
+            boardOrientation: game.playerIsWhite ? PlayerColor.white : PlayerColor.black,
+            onMove: () => _handleMove(context),
+            enableUserMoves: true,
           ),
         ),
         ...List.generate(8, (rank) {
