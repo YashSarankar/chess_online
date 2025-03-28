@@ -1,7 +1,7 @@
+import 'package:chess_online/auth/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'auth_service.dart';
-import '../screens/home_screen.dart';
 import 'dart:ui';
 import 'package:simple_animations/simple_animations.dart';
 
@@ -64,7 +64,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     final user = await _authService.restoreSession();
     if (user != null && mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        MaterialPageRoute(builder: (context) => const SplashScreen()),
       );
     }
   }
@@ -105,7 +105,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(builder: (context) => const SplashScreen()),
         );
       }
     } catch (e) {

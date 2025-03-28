@@ -110,6 +110,7 @@ class AuthService {
     try {
       await _googleSignIn.signOut();
       await _auth.signOut();
+      //move to login screen
     } catch (e) {
       throw _handleAuthException(e);
     }
@@ -169,5 +170,23 @@ class AuthService {
       }
     }
     return 'An unexpected error occurred.';
+  }
+
+  Future<void> createUserDocument(User user) async {
+    final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    
+    // Check if the document already exists
+    final doc = await userDoc.get();
+    if (!doc.exists) {
+      await userDoc.set({
+        'name': user.displayName ?? 'Chess Player',
+        'email': user.email,
+        'photoUrl': user.photoURL,
+        'gamesPlayed': 0,
+        'wins': 0,
+        'losses': 0,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
   }
 } 

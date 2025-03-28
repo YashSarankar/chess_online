@@ -4,12 +4,35 @@ import 'auth/splash_screen.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:chess_online/screens/main_screen.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'services/notification_service.dart';
+
+// Initialize notification service at app start
+Future<void> _initializeNotifications() async {
+  // Request permission for notifications
+  await FirebaseMessaging.instance.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+
+  // Initialize notification service
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize notifications
+  await _initializeNotifications();
+
   runApp(const MyApp());
 }
 
@@ -22,8 +45,9 @@ class MyApp extends StatelessWidget {
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
     ));
+    
     return ScreenUtilInit(
-      designSize: const Size(360, 690), // Design size based on your mockup
+      designSize: const Size(360, 690),
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
@@ -34,10 +58,10 @@ class MyApp extends StatelessWidget {
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
             useMaterial3: true,
           ),
-          home: child,
+          // Use MainScreen instead of SplashScreen
+          home: const SplashScreen(),
         );
       },
-      child: const SplashScreen(),
     );
   }
 }

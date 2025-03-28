@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:chess_online/screens/game_lobby_screen.dart';
+import 'dart:math' show pi;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,7 +18,24 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 40),
+      vsync: this,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     // Set system overlay style for status bar
@@ -28,417 +46,336 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Animated background
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.indigo[900]!,
-                  Colors.purple[900]!,
-                  Colors.blue[900]!,
-                ],
-              ),
+    return Stack(
+      children: [
+        // Background gradient
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.indigo[900]!,
+                Colors.purple[900]!,
+                Colors.blue[900]!,
+              ],
             ),
           ),
-          // Particle effect overlay
-          CustomPaint(
-            painter: ParticlePainter(),
-            size: Size.infinite,
-          ),
-          // Main content
-          BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 0.5, sigmaY: 0.5),
-            child: SafeArea(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: EdgeInsets.all(12.0.h),
-                    child: Hero(
-                      tag: 'app_title',
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.2),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 15,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
+        ),
+
+        // Animated stars background
+        ...List.generate(20, (index) {
+          final double size = (index % 3 + 1) * 2.0;
+          return AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              final double value = (_controller.value + index / 20) % 1.0;
+              return Positioned(
+                left: MediaQuery.of(context).size.width * ((index * 17 % 100) / 100),
+                top: MediaQuery.of(context).size.height * value,
+                child: Opacity(
+                  opacity: (1 - value) * 0.2,
+                  child: Container(
+                    width: size,
+                    height: size,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.5),
+                          blurRadius: 2,
+                          spreadRadius: 1,
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '♔',
-                              style: TextStyle(
-                                fontSize: 28.sp,
-                                color: Colors.white.withOpacity(0.95),
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.white.withOpacity(0.3),
-                                    blurRadius: 10,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(width: 8.w),
-                            Text(
-                              'Chess Time',
-                              style: TextStyle(
-                                fontSize: 20.sp,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white.withOpacity(0.95),
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.logout_outlined,color: Colors.white,),
-                              onPressed: () => showDialog(
-                                context: context,
-                                barrierColor: Colors.black.withOpacity(0.7),
-                                builder: (context) => BackdropFilter(
-                                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                                  child: Dialog(
-                                    backgroundColor: Colors.transparent,
-                                    elevation: 0,
-                                    child: Container(
-                                      padding: EdgeInsets.all(24.r),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: [
-                                            Colors.indigo[900]!.withOpacity(0.95),
-                                            Colors.purple[900]!.withOpacity(0.95),
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(20.r),
-                                        border: Border.all(
-                                          color: Colors.white.withOpacity(0.2),
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.3),
-                                            blurRadius: 20,
-                                            spreadRadius: 5,
-                                          ),
-                                        ],
-                                      ),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Container(
-                                            padding: EdgeInsets.all(16.r),
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              color: Colors.red[400]!.withOpacity(0.2),
-                                            ),
-                                            child: Icon(
-                                              Icons.logout_rounded,
-                                              color: Colors.red[400],
-                                              size: 32.sp,
-                                            ),
-                                          ),
-                                          SizedBox(height: 16.h),
-                                          Text(
-                                            'Confirm Logout',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 24.sp,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          SizedBox(height: 8.h),
-                                          Text(
-                                            'Are you sure you want to leave?',
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              color: Colors.white.withOpacity(0.7),
-                                              fontSize: 16.sp,
-                                            ),
-                                          ),
-                                          SizedBox(height: 24.h),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Expanded(
-                                                child: TextButton(
-                                                  onPressed: () => Navigator.pop(context),
-                                                  style: TextButton.styleFrom(
-                                                    padding: EdgeInsets.symmetric(vertical: 12.h),
-                                                    backgroundColor: Colors.white.withOpacity(0.1),
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius: BorderRadius.circular(12.r),
-                                                    ),
-                                                  ),
-                                                  child: Text(
-                                                    'Cancel',
-                                                    style: TextStyle(
-                                                      color: Colors.white.withOpacity(0.9),
-                                                      fontSize: 16.sp,
-                                                      fontWeight: FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              SizedBox(width: 16.w),
-                                              Expanded(
-                                                child: ElevatedButton(
-                                                  onPressed: () {
-                                                  setState(() {
-                                                    AuthService().signOut();
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (context) => const LoginScreen(),
-                                                      ),
-                                                    );
-                                                  });
-                                                  },
-                                                  style: ElevatedButton.styleFrom(
-                                                    padding: EdgeInsets.symmetric(vertical: 12.h),
-                                                    backgroundColor: Colors.red[400],
-                                                    elevation: 0,
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius: BorderRadius.circular(12.r),
-                                                    ),
-                                                  ),
-                                                  child: Text(
-                                                    'Logout',
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 16.sp,
-                                                      fontWeight: FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
+                      ],
                     ),
                   ),
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
-                      child: Column(
+                ),
+              );
+            },
+          );
+        }),
+        // Main content with blur
+        BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 0.5, sigmaY: 0.5),
+          child: SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(12.0.h),
+                  child: Hero(
+                    tag: 'app_title',
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.1),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
+                          TweenAnimationBuilder(
+                            tween: Tween<double>(begin: 0, end: 2 * pi),
+                            duration: const Duration(seconds: 10),
+                            builder: (context, double value, child) {
+                              return Transform.rotate(
+                                angle: value,
+                                child: Text(
+                                  '♔',
+                                  style: TextStyle(
+                                    fontSize: 32.sp,
+                                    color: Colors.white,
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.white.withOpacity(0.5),
+                                        blurRadius: 15,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          SizedBox(width: 12.w),
                           Text(
-                            'Select Game Mode',
+                            'Chess Time',
                             style: TextStyle(
-                              fontSize: 20.sp,
+                              fontSize: 24.sp,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white.withOpacity(0.9),
-                            ),
-                          ),
-                          SizedBox(height: 16.h),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildQuickPlayButton(
-                                  context,
-                                  title: 'Play Bot',
-                                  subtitle: 'Challenge AI',
-                                  icon: Icons.smart_toy_rounded,
-                                  gradient: [
-                                    Colors.deepPurple[400]!,
-                                    Colors.deepPurple[700]!,
-                                  ],
-                                  onTap: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return Dialog(
-                                          backgroundColor: Colors.transparent,
-                                          child: Container(
-                                            padding: EdgeInsets.all(24.r),
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                begin: Alignment.topLeft,
-                                                end: Alignment.bottomRight,
-                                                colors: [
-                                                  Colors.indigo[900]!,
-                                                  Colors.indigo[800]!,
-                                                ],
-                                              ),
-                                              borderRadius: BorderRadius.circular(20.r),
-                                              border: Border.all(
-                                                color: Colors.white.withOpacity(0.2),
-                                              ),
-                                            ),
-                                            child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Text(
-                                                  'Choose Your Color',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 24.sp,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                                SizedBox(height: 24.h),
-                                                Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                  children: [
-                                                    _buildColorChoice(
-                                                      context,
-                                                      isWhite: true,
-                                                      onSelected: () => Navigator.push(
-                                                        context,
-                                                        MaterialPageRoute(
-                                                          builder: (context) => ChessGamePage(
-                                                            timeControl: 10,
-                                                            boardStyle: ChessBoardStyle.brown,
-                                                            isBotMode: true,
-                                                            playerIsWhite: true,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    _buildColorChoice(
-                                                      context,
-                                                      isWhite: false,
-                                                      onSelected: () => Navigator.push(
-                                                        context,
-                                                        MaterialPageRoute(
-                                                          builder: (context) => ChessGamePage(
-                                                            timeControl: 10,
-                                                            boardStyle: ChessBoardStyle.brown,
-                                                            isBotMode: true,
-                                                            playerIsWhite: false,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  },
-                                ),
-                              ),
-                              SizedBox(width: 8.w),
-                              Expanded(
-                                child: _buildQuickPlayButton(
-                                  context,
-                                  title: 'Multiplayer',
-                                  subtitle: 'Play Friends',
-                                  icon: Icons.people_rounded,
-                                  gradient: [
-                                    Colors.blue[400]!,
-                                    Colors.blue[700]!,
-                                  ],
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => GameLobbyScreen(),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 16.h),
-                          Text(
-                            'Or Choose Time Control',
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white.withOpacity(0.7),
-                            ),
-                          ),
-                          SizedBox(height: 12.h),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: _buildTimeControlButton(
-                                    context,
-                                    minutes: 1,
-                                    icon: Icons.bolt,
-                                    subtitle: 'Bullet Chess',
-                                    gradient: [Colors.orange[700]!, Colors.deepOrange[800]!],
-                                  ),
-                                ),
-                                SizedBox(height: 8.h),
-                                Expanded(
-                                  child: _buildTimeControlButton(
-                                    context,
-                                    minutes: 3,
-                                    icon: Icons.flash_on,
-                                    subtitle: 'Blitz Chess',
-                                    gradient: [Colors.blue[600]!, Colors.blue[900]!],
-                                  ),
-                                ),
-                                SizedBox(height: 8.h),
-                                Expanded(
-                                  child: _buildTimeControlButton(
-                                    context,
-                                    minutes: 5,
-                                    icon: Icons.timer,
-                                    subtitle: 'Rapid Chess',
-                                    gradient: [Colors.green[600]!, Colors.green[900]!],
-                                  ),
-                                ),
-                                SizedBox(height: 8.h),
-                                Expanded(
-                                  child: _buildTimeControlButton(
-                                    context,
-                                    minutes: 10,
-                                    icon: Icons.hourglass_bottom,
-                                    subtitle: 'Classical Chess',
-                                    gradient: [Colors.purple[600]!, Colors.purple[900]!],
-                                  ),
-                                ),
-                              ],
+                              color: Colors.white,
+                              letterSpacing: 1.5,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: EdgeInsets.all(12.h),
-                    child: Text(
-                      'Choose your preferred time control to start playing',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 12.sp,
-                      ),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w),
+                  child: Text(
+                    'Experience Chess Like Never Before',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      color: Colors.white.withOpacity(0.9),
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                ],
-              ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Select Game Mode',
+                          style: TextStyle(
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white.withOpacity(0.9),
+                          ),
+                        ),
+                        SizedBox(height: 16.h),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildQuickPlayButton(
+                                context,
+                                title: 'Play Bot',
+                                subtitle: 'Challenge AI',
+                                icon: Icons.smart_toy_rounded,
+                                gradient: [
+                                  Colors.deepPurple[400]!,
+                                  Colors.deepPurple[700]!,
+                                ],
+                                onTap: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return Dialog(
+                                        backgroundColor: Colors.transparent,
+                                        child: Container(
+                                          padding: EdgeInsets.all(24.r),
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                              colors: [
+                                                Colors.indigo[900]!,
+                                                Colors.indigo[800]!,
+                                              ],
+                                            ),
+                                            borderRadius: BorderRadius.circular(20.r),
+                                            border: Border.all(
+                                              color: Colors.white.withOpacity(0.2),
+                                            ),
+                                          ),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                'Choose Your Color',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 24.sp,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              SizedBox(height: 24.h),
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                children: [
+                                                  _buildColorChoice(
+                                                    context,
+                                                    isWhite: true,
+                                                    onSelected: () => Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (context) => ChessGamePage(
+                                                          timeControl: 10,
+                                                          boardStyle: ChessBoardStyle.brown,
+                                                          isBotMode: true,
+                                                          playerIsWhite: true,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  _buildColorChoice(
+                                                    context,
+                                                    isWhite: false,
+                                                    onSelected: () => Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (context) => ChessGamePage(
+                                                          timeControl: 10,
+                                                          boardStyle: ChessBoardStyle.brown,
+                                                          isBotMode: true,
+                                                          playerIsWhite: false,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: _buildQuickPlayButton(
+                                context,
+                                title: 'Multiplayer',
+                                subtitle: 'Play Friends',
+                                icon: Icons.people_rounded,
+                                gradient: [
+                                  Colors.blue[400]!,
+                                  Colors.blue[700]!,
+                                ],
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => GameLobbyScreen(),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16.h),
+                        Text(
+                          'Or Choose Time Control',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withOpacity(0.7),
+                          ),
+                        ),
+                        SizedBox(height: 12.h),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Expanded(
+                                child: _buildTimeControlButton(
+                                  context,
+                                  minutes: 1,
+                                  icon: Icons.bolt,
+                                  subtitle: 'Bullet Chess',
+                                  gradient: [Colors.orange[700]!, Colors.deepOrange[800]!],
+                                ),
+                              ),
+                              SizedBox(height: 8.h),
+                              Expanded(
+                                child: _buildTimeControlButton(
+                                  context,
+                                  minutes: 3,
+                                  icon: Icons.flash_on,
+                                  subtitle: 'Blitz Chess',
+                                  gradient: [Colors.blue[600]!, Colors.blue[900]!],
+                                ),
+                              ),
+                              SizedBox(height: 8.h),
+                              Expanded(
+                                child: _buildTimeControlButton(
+                                  context,
+                                  minutes: 5,
+                                  icon: Icons.timer,
+                                  subtitle: 'Rapid Chess',
+                                  gradient: [Colors.green[600]!, Colors.green[900]!],
+                                ),
+                              ),
+                              SizedBox(height: 8.h),
+                              Expanded(
+                                child: _buildTimeControlButton(
+                                  context,
+                                  minutes: 10,
+                                  icon: Icons.hourglass_bottom,
+                                  subtitle: 'Classical Chess',
+                                  gradient: [Colors.purple[600]!, Colors.purple[900]!],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.all(12.h),
+                  child: Text(
+                    'Join thousands of players worldwide in exciting chess matches!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -564,6 +501,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: GestureDetector(
         onTap: () => _showBoardStyleDialog(context, minutes),
         child: Container(
+          height: 72.h,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: gradient,
@@ -581,16 +519,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
-              BoxShadow(
-                color: gradient[0].withOpacity(0.3),
-                blurRadius: 10,
-                spreadRadius: -5,
-                offset: const Offset(0, -5),
-              ),
             ],
           ),
           child: Padding(
-            padding: EdgeInsets.all(12.r),
+            padding: EdgeInsets.symmetric(horizontal: 12.r, vertical: 8.r),
             child: Row(
               children: [
                 Icon(
@@ -608,7 +540,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         '$minutes ${minutes == 1 ? 'Minute' : 'Minutes'}',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 16.sp,
+                          fontSize: 15.sp,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -616,7 +548,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         subtitle,
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.9),
-                          fontSize: 12.sp,
+                          fontSize: 11.sp,
                         ),
                       ),
                     ],
@@ -734,23 +666,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-}
-
-class ParticlePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.1)
-      ..style = PaintingStyle.fill;
-
-    // Create a static chess-themed particle pattern
-    for (var i = 0; i < 50; i++) {
-      final x = (i * size.width / 50);
-      final y = (i * size.height / 50);
-      canvas.drawCircle(Offset(x, y), 2, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
 } 

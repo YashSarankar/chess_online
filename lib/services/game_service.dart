@@ -42,67 +42,41 @@ class GameService {
       final user = _auth.currentUser;
       if (user == null) throw 'User not authenticated';
 
-      // First validate the gameId format and clean it
-      if (gameId.isEmpty) throw 'Invalid game ID';
-      final cleanGameId = gameId.trim();
+      final gameRef = _firestore.collection('games').doc(gameId);
       
-      print('Attempting to join game with ID: $cleanGameId'); // Debug log
-
-      // Create a reference to the game document
-      final gameRef = _firestore.collection('games').doc(cleanGameId);
-
-      // Get real-time game data
-      final gameDoc = await gameRef.get();
-      
-      print('Game exists: ${gameDoc.exists}'); // Debug log
-
-      if (!gameDoc.exists) {
-        throw 'Game not found. Please check the game ID: $cleanGameId';
-      }
-
-      final data = gameDoc.data() as Map<String, dynamic>;
-      
-      print('Game status: ${data['status']}'); // Debug log
-      print('Current player2: ${data['player2']}'); // Debug log
-      
-      // Additional validations
-      if (data['status'] != 'waiting') {
-        throw 'This game is no longer available';
-      }
-      if (data['player2'] != null) {
-        throw 'Game is already full';
-      }
-      if (data['player1'] == user.uid) {
-        throw 'Cannot join your own game';
-      }
-
-      // Join the game with a transaction to ensure atomicity
+      // Use a transaction to ensure atomic updates
       await _firestore.runTransaction((transaction) async {
-        final freshGameDoc = await transaction.get(gameRef);
+        final gameDoc = await transaction.get(gameRef);
         
-        if (!freshGameDoc.exists) {
-          throw 'Game no longer exists';
+        if (!gameDoc.exists) {
+          throw 'Game not found';
         }
-        
-        final freshData = freshGameDoc.data() as Map<String, dynamic>;
-        if (freshData['player2'] != null) throw 'Game is already full';
-        if (freshData['status'] != 'waiting') throw 'Game is no longer available';
 
+        final gameData = gameDoc.data() as Map<String, dynamic>;
+        
+        if (gameData['status'] != 'waiting') {
+          throw 'Game is no longer available';
+        }
+
+        if (gameData['player1'] == user.uid) {
+          throw 'Cannot join your own game';
+        }
+
+        if (gameData['player2'] != null) {
+          throw 'Game is already full';
+        }
+
+        // Update the game document atomically
         transaction.update(gameRef, {
           'player2': user.uid,
           'player2_name': user.displayName ?? 'Anonymous',
           'status': 'active',
-          'updated_at': FieldValue.serverTimestamp(),
+          'joined_at': FieldValue.serverTimestamp(),
         });
       });
 
-      print('Successfully joined game: $cleanGameId'); // Debug log
     } catch (e) {
-      print('Error joining game: $e'); // Debug log
-      if (e is FirebaseException) {
-        throw 'Failed to join game: ${e.message}';
-      }
-      throw e.toString();
+      throw 'Failed to join game: $e';
     }
   }
 
@@ -204,16 +178,26 @@ class GameService {
 
   Future<void> endGame({
     required String gameId,
-    String? winner,
+    required String? winner,
+    bool gameOver = true,
+    String? reason,
   }) async {
-    try {
-      await _firestore.collection('games').doc(gameId).update({
-        'status': 'completed',
-        'game_over': true,
-        'winner': winner,
-      });
-    } catch (e) {
-      throw 'Failed to end game: $e';
-    }
+    await _firestore.collection('games').doc(gameId).update({
+      'game_over': gameOver,
+      'winner': winner,
+      'end_reason': reason,
+      'ended_at': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> updateCapturedPieces({
+    required String gameId,
+    required List<String> whiteCapturedPieces,
+    required List<String> blackCapturedPieces,
+  }) async {
+    await _firestore.collection('games').doc(gameId).update({
+      'white_captured_pieces': whiteCapturedPieces,
+      'black_captured_pieces': blackCapturedPieces,
+    });
   }
 } 
