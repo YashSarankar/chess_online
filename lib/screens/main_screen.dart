@@ -44,62 +44,64 @@ class _MainScreenState extends State<MainScreen> {
       backgroundColor: Colors.transparent,
       body: _screens[_currentIndex],
       extendBody: true,
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.fromLTRB(12.r, 0, 12.r, 12.r),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24.r),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              height: 70.h,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white.withOpacity(0.1),
-                    Colors.white.withOpacity(0.05),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(24.r),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
-                  width: 1.5,
-                ),
-              ),
-              child: Theme(
-                data: Theme.of(context).copyWith(
-                  splashColor: Colors.transparent,
-                  highlightColor: Colors.transparent,
-                ),
-                child: BottomNavigationBar(
-                  currentIndex: _currentIndex,
-                  onTap: (index) {
-                    setState(() {
-                      _currentIndex = index;
-                    });
-                  },
-                  type: BottomNavigationBarType.fixed,
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  selectedItemColor: Colors.white,
-                  unselectedItemColor: Colors.white.withOpacity(0.5),
-                  selectedFontSize: 11.sp,
-                  unselectedFontSize: 10.sp,
-                  iconSize: 22.sp,
-                  selectedLabelStyle: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(12.r, 0, 12.r, 12.r),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24.r),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                height: 70.h,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withOpacity(0.1),
+                      Colors.white.withOpacity(0.05),
+                    ],
                   ),
-                  unselectedLabelStyle: const TextStyle(
-                    fontWeight: FontWeight.w500,
+                  borderRadius: BorderRadius.circular(24.r),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1.5,
                   ),
-                  items: [
-                    _buildNavItem(Icons.home_rounded, 'Home'),
-                    _buildNavItem(Icons.account_balance_wallet_rounded, 'Wallet'),
-                    _buildNavItem(Icons.receipt_long_rounded, 'History'),
-                    _buildNavItem(Icons.person_rounded, 'Profile'),
-                  ],
+                ),
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    splashColor: Colors.transparent,
+                    highlightColor: Colors.transparent,
+                  ),
+                  child: BottomNavigationBar(
+                    currentIndex: _currentIndex,
+                    onTap: (index) {
+                      setState(() {
+                        _currentIndex = index;
+                      });
+                    },
+                    type: BottomNavigationBarType.fixed,
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    selectedItemColor: Colors.white,
+                    unselectedItemColor: Colors.white.withOpacity(0.5),
+                    selectedFontSize: 12,
+                    unselectedFontSize: 12,
+                    iconSize: 22.sp,
+                    selectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                    ),
+                    items: [
+                      _buildNavItem(Icons.home_rounded, 'Home'),
+                      _buildNavItem(Icons.account_balance_wallet_rounded, 'Wallet'),
+                      _buildNavItem(Icons.receipt_long_rounded, 'History'),
+                      _buildNavItem(Icons.person_rounded, 'Profile'),
+                    ],
+                  ),
                 ),
               ),
             ),
