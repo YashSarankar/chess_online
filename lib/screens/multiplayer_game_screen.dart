@@ -836,32 +836,20 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> with Tick
         
         return Transform.rotate(
           angle: isWhite ? 0 : pi,
-          child: Container(
-            margin: EdgeInsets.all(16.r),
-            decoration: BoxDecoration(
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 10,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: Transform.rotate(
-              angle: isWhite ? 0 : pi,
-              child: ChessBoard(
-                controller: _controller,
-                boardColor: BoardColor.orange,
-                boardOrientation: isWhite ? PlayerColor.white : PlayerColor.black,
-                onMove: () {
-                  final moves = _controller.getSan();
-                  if (moves.isNotEmpty) {
-                    _onMove(moves.last!);
-                  }
-                },
-                enableUserMoves: isMyTurn && !_isGameOver,
-                size: boardSize,
-              ),
+          child: Transform.rotate(
+            angle: isWhite ? 0 : pi,
+            child: ChessBoard(
+              controller: _controller,
+              boardColor: BoardColor.orange,
+              boardOrientation: isWhite ? PlayerColor.white : PlayerColor.black,
+              onMove: () {
+                final moves = _controller.getSan();
+                if (moves.isNotEmpty) {
+                  _onMove(moves.last!);
+                }
+              },
+              enableUserMoves: isMyTurn && !_isGameOver,
+              size: boardSize,
             ),
           ),
         );
