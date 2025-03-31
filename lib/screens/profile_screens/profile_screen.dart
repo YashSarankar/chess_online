@@ -10,13 +10,45 @@ import 'package:chess_online/screens/profile_screens/achievements_screen.dart';
 import 'package:chess_online/screens/profile_screens/match_history_screen.dart';
 import 'package:chess_online/screens/profile_screens/help_support_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+class ProfileScreen extends StatefulWidget {
+  @override
+  _ProfileScreenState createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool isLoading = false;
+
+  void _logout() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      if (context.mounted && FirebaseAuth.instance.currentUser != null) {
+        await AuthService().signOut();
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const LoginScreen(),
+          ),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      // Handle error if needed
+      print('Logout error: $e');
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final firestore = FirebaseFirestore.instance;
+    
 
     return Stack(
       children: [
@@ -67,171 +99,168 @@ class ProfileScreen extends StatelessWidget {
               final wins = userData['wins']?.toString() ?? '0';
               final losses = userData['losses']?.toString() ?? '0';
 
-              return SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: Column(
-                    children: [
-                      SizedBox(height: 20.h),
-                      
-                      // Profile Header with actual user data
-                      _buildProfileHeader(name, photoUrl),
-                      SizedBox(height: 25.h),
+              return ScrollConfiguration(
+                behavior: ScrollBehavior().copyWith(
+                  scrollbars: false,
+                  physics: BouncingScrollPhysics(),
+                ),
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Column(
+                      children: [
+                        SizedBox(height: 20.h),
+                        
+                        // Profile Header with actual user data
+                        _buildProfileHeader(name, photoUrl),
+                        SizedBox(height: 25.h),
 
-                      // Stats Cards with actual stats
-                      _buildStatsSection(games, wins, losses),
-                      SizedBox(height: 25.h),
+                        // Stats Cards with actual stats
+                        _buildStatsSection(games, wins, losses),
+                        SizedBox(height: 25.h),
 
-                      // Menu Items
-                      _buildMenuItem(
-                        icon: Icons.person_outline,
-                        title: 'Edit Profile',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const EditProfileScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      _buildMenuItem(
-                        icon: Icons.emoji_events_outlined,
-                        title: 'Achievements',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AchievementsScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      _buildMenuItem(
-                        icon: Icons.history,
-                        title: 'Match History',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const MatchHistoryScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      _buildMenuItem(
-                        icon: Icons.logout_outlined,
-                        title: 'Logout',
-                        onTap: () => showDialog(
-                          context: context,
-                          barrierColor: Colors.black.withOpacity(0.7),
-                          builder: (context) => BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                            child: Dialog(
-                              backgroundColor: Colors.transparent,
-                              elevation: 0,
-                              child: Container(
-                                padding: EdgeInsets.all(24.r),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      Colors.indigo[900]!,
-                                      Colors.purple[900]!,
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(20.r),
-                                  border: Border.all(
-                                    color: Colors.white.withOpacity(0.2),
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      blurRadius: 20,
-                                      spreadRadius: 5,
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.logout_rounded,
-                                      color: Colors.white,
-                                      size: 48.sp,
-                                    ),
-                                    SizedBox(height: 16.h),
-                                    Text(
-                                      'Logout',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 24.sp,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(height: 8.h),
-                                    Text(
-                                      'Are you sure you want to logout?',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: Colors.white.withOpacity(0.8),
-                                        fontSize: 16.sp,
-                                      ),
-                                    ),
-                                    SizedBox(height: 24.h),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                      children: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(context),
-                                          child: Text(
-                                            'Cancel',
-                                            style: TextStyle(
-                                              color: Colors.white.withOpacity(0.8),
-                                              fontSize: 16.sp,
-                                            ),
-                                          ),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            AuthService().signOut();
-                                            Navigator.pushReplacement(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) => const LoginScreen(),
-                                              ),
-                                            );
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.red[400],
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 24.w,
-                                              vertical: 12.h,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(12.r),
-                                            ),
-                                          ),
-                                          child: Text(
-                                            'Logout',
-                                            style: TextStyle(
-                                              fontSize: 16.sp,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
+                        // Menu Items
+                        _buildMenuItem(
+                          icon: Icons.person_outline,
+                          title: 'Edit Profile',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const EditProfileScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildMenuItem(
+                          icon: Icons.emoji_events_outlined,
+                          title: 'Achievements',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AchievementsScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildMenuItem(
+                          icon: Icons.history,
+                          title: 'Match History',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MatchHistoryScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildMenuItem(
+                          icon: Icons.logout_outlined,
+                          title: 'Logout',
+                          onTap: () => showDialog(
+                            context: context,
+                            barrierColor: Colors.black.withOpacity(0.7),
+                            builder: (context) => BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                              child: Dialog(
+                                backgroundColor: Colors.transparent,
+                                elevation: 0,
+                                child: Container(
+                                  padding: EdgeInsets.all(24.r),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Colors.indigo[900]!,
+                                        Colors.purple[900]!,
                                       ],
                                     ),
-                                  ],
+                                    borderRadius: BorderRadius.circular(20.r),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.2),
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        blurRadius: 20,
+                                        spreadRadius: 5,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.logout_rounded,
+                                        color: Colors.white,
+                                        size: 48.sp,
+                                      ),
+                                      SizedBox(height: 16.h),
+                                      Text(
+                                        'Logout',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 24.sp,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      SizedBox(height: 8.h),
+                                      Text(
+                                        'Are you sure you want to logout?',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.8),
+                                          fontSize: 16.sp,
+                                        ),
+                                      ),
+                                      SizedBox(height: 24.h),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                        children: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context),
+                                            child: Text(
+                                              'Cancel',
+                                              style: TextStyle(
+                                                color: Colors.white.withOpacity(0.8),
+                                                fontSize: 16.sp,
+                                              ),
+                                            ),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: _logout,
+                                            style: ElevatedButton.styleFrom(
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 24.w,
+                                                vertical: 12.h,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(12.r),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              'Logout',
+                                              style: TextStyle(
+                                                fontSize: 16.sp,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -412,4 +441,4 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
-} 
+}

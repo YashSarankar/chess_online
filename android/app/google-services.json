@@ -84,6 +84,42 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:523829422600:android:065a31c7880724aeee7fbd",
+        "android_client_info": {
+          "package_name": "com.sarankar.chessearn"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "523829422600-pmtbj6e1gpgpn4r2q4sp5ce5rv8k5ku7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBN1seGpPoFXjI-4KHaRX57AMacQMvXuIY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "523829422600-pmtbj6e1gpgpn4r2q4sp5ce5rv8k5ku7.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "523829422600-4mo4hdpmr0cj4sjqgflhi11eg239dv67.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.games"
+              }
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

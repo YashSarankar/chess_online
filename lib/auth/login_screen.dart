@@ -1,4 +1,5 @@
 import 'package:chess_online/auth/splash_screen.dart';
+import 'package:chess_online/screens/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'auth_service.dart';
@@ -125,13 +126,21 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       await _authService.signInWithGoogle();
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const SplashScreen()),
+          MaterialPageRoute(builder: (context) => const MainScreen()),
         );
       }
     } catch (e) {
+      print('Google Sign-In error: $e'); // Log the error for debugging
       if (mounted) {
+        String errorMessage = 'An unexpected error occurred. Please try again.';
+        
+        // Optionally, you can add more specific error handling here
+        // if (e.toString().contains('specific-error')) {
+        //   errorMessage = 'Specific error message.';
+        // }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(content: Text(errorMessage)),
         );
       }
     } finally {

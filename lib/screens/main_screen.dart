@@ -22,7 +22,7 @@ class _MainScreenState extends State<MainScreen> {
     const HomeScreen(),
     const UnderProductionScreen(),
     const UnderProductionScreen(),
-    const ProfileScreen(),
+     ProfileScreen(),
   ];
 
   @override

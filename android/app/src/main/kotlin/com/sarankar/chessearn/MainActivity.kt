@@ -1,4 +1,4 @@
-package com.example.chess_online
+package com.sarankar.chessearn
 
 import io.flutter.embedding.android.FlutterActivity
 

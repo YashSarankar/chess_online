@@ -156,7 +156,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Top icon with smooth animation
                     AnimatedBuilder(
                       animation: _controller,
                       builder: (context, child) {

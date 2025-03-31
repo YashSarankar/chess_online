@@ -294,7 +294,7 @@ class _MultiplayerGameScreenState extends State<MultiplayerGameScreen> with Tick
                 // Single prominent back button
                 GestureDetector(
                   onTap: () {
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => GameLobbyScreen()));
+                    Navigator.of(context).popUntil((route) => route.isFirst);
                   },
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 16.h),
