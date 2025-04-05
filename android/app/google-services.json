@@ -94,6 +94,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "523829422600-0v42fl1c8a4sq7kfstsgbvbvatd97fcm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sarankar.chessearn",
+            "certificate_hash": "31b24d1feea1db6f95b444baf599e81a2335bd43"
+          }
+        },
+        {
           "client_id": "523829422600-pmtbj6e1gpgpn4r2q4sp5ce5rv8k5ku7.apps.googleusercontent.com",
           "client_type": 3
         }

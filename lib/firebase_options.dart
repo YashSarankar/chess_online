@@ -67,7 +67,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '523829422600',
     projectId: 'subtle-creek-419518',
     storageBucket: 'subtle-creek-419518.firebasestorage.app',
-    androidClientId: '523829422600-auhkv3j10cpcv4lfj8sli4g69bao16is.apps.googleusercontent.com',
+    androidClientId: '523829422600-0v42fl1c8a4sq7kfstsgbvbvatd97fcm.apps.googleusercontent.com',
     iosClientId: '523829422600-fuqo3snb72ol268euqfqkt5eio6qgomf.apps.googleusercontent.com',
     iosBundleId: 'com.sarankar.chessearn',
   );
@@ -78,7 +78,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '523829422600',
     projectId: 'subtle-creek-419518',
     storageBucket: 'subtle-creek-419518.firebasestorage.app',
-    androidClientId: '523829422600-auhkv3j10cpcv4lfj8sli4g69bao16is.apps.googleusercontent.com',
+    androidClientId: '523829422600-0v42fl1c8a4sq7kfstsgbvbvatd97fcm.apps.googleusercontent.com',
     iosClientId: '523829422600-gb9be9hpg4n89uvjrl8p2q00pj2m4ho6.apps.googleusercontent.com',
     iosBundleId: 'com.example.chessOnline',
   );
